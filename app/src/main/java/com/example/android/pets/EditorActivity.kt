@@ -16,7 +16,6 @@
 package com.example.android.pets
 
 import android.os.Bundle
-import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -27,6 +26,8 @@ import android.widget.EditText
 import android.widget.Spinner
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NavUtils
+import com.example.android.pets.data.PetContract
+import com.example.android.pets.data.PetContract.PetEntry
 
 /**
  * Allows user to create a new pet or edit an existing one.
@@ -48,7 +49,7 @@ class EditorActivity : AppCompatActivity() {
      * Gender of the pet. The possible values are:
      * 0 for unknown gender, 1 for male, 2 for female.
      */
-    private var mGender = 0
+    private var mGender = PetEntry.GENDER_UNKNOWN
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editor)
@@ -68,18 +69,16 @@ class EditorActivity : AppCompatActivity() {
         // Create adapter for spinner. The list options are from the String array it will use
         // the spinner will use the default layout
         val genderSpinnerAdapter: ArrayAdapter<*> = ArrayAdapter.createFromResource(
-            this,
-            R.array.array_gender_options, android.R.layout.simple_spinner_item
-        )
+            this, R.array.array_gender_options, android.R.layout.simple_spinner_item)
 
         // Specify dropdown layout style - simple list view with 1 item per line
         genderSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line)
 
         // Apply the adapter to the spinner
-        mGenderSpinner!!.adapter = genderSpinnerAdapter
+        mGenderSpinner?.adapter = genderSpinnerAdapter
 
         // Set the integer mSelected to the constant values
-        mGenderSpinner!!.onItemSelectedListener = object : OnItemSelectedListener {
+        mGenderSpinner?.onItemSelectedListener = object : OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
                 view: View,
@@ -87,20 +86,18 @@ class EditorActivity : AppCompatActivity() {
                 id: Long
             ) {
                 val selection = parent.getItemAtPosition(position) as String
-                if (!TextUtils.isEmpty(selection)) {
-                    mGender = if (selection == getString(R.string.gender_male)) {
-                        1 // Male
-                    } else if (selection == getString(R.string.gender_female)) {
-                        2 // Female
-                    } else {
-                        0 // Unknown
+                if (selection.isNotEmpty()) {
+                    mGender = when (selection) {
+                        getString(R.string.gender_male) -> PetEntry.GENDER_MALE
+                        getString(R.string.gender_female) -> PetEntry.GENDER_FEMALE
+                        else -> PetEntry.GENDER_UNKNOWN
                     }
                 }
             }
 
             // Because AdapterView is an abstract class, onNothingSelected must be defined
             override fun onNothingSelected(parent: AdapterView<*>?) {
-                mGender = 0 // Unknown
+                mGender = PetEntry.GENDER_UNKNOWN
             }
         }
     }
