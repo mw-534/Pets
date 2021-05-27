@@ -15,9 +15,11 @@
  */
 package com.example.android.pets
 
+import android.content.ContentValues
 import android.content.Intent
 import android.database.Cursor
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -32,6 +34,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
  * Displays list of pets that were entered and stored in the app.
  */
 class CatalogActivity : AppCompatActivity() {
+
+    /** Database helper that will provide us access to the database. */
+    private var mDbHelper: PetDbHelper? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_catalog)
@@ -43,6 +49,10 @@ class CatalogActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // To access our database, we instantiate our subclass of SQLiteOpenHelper
+        // and pass the context, which is the current activity.
+        mDbHelper = PetDbHelper(this)
+
         displayDatabaseInfo()
     }
 
@@ -51,26 +61,46 @@ class CatalogActivity : AppCompatActivity() {
      * the pets database.
      */
     private fun displayDatabaseInfo() {
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper
-        // and pass the context, which is the current activity.
-        val mDbHelper = PetDbHelper(this)
-
         // Create and/or open a database to read from it
-        val db = mDbHelper.readableDatabase
+        val db = mDbHelper?.readableDatabase
 
         // Perform this raw SQL query "SELECT * FROM pets"
         // to get a Cursor that contains all rows from the pets table.
-        val cursor: Cursor = db.rawQuery("SELECT * FROM " + PetEntry.TABLE_NAME, null)
-        try {
+        val cursor: Cursor? = db?.rawQuery("SELECT * FROM " + PetEntry.TABLE_NAME, null)
+        cursor.use { cursor ->
             // Display the number of rows in the Cursor (which reflects the number of rows in the
             // pets table in the database).
             val displayView = findViewById<View>(R.id.text_view_pet) as TextView
-            displayView.text = "Number of rows in pets database table: " + cursor.getCount()
-        } finally {
-            // Always close the cursor when you're done reading from it. This releases all its
-            // resources and makes it invalid.
-            cursor.close()
+            displayView.text = "Number of rows in pets database table: " + cursor?.getCount()
         }
+    }
+
+    /**
+     * Helper method to insert hardcoded pet data into the database. For debugging purposes only.
+     */
+    private fun insertPet() {
+        // Get the database in write mode.
+        val db = mDbHelper?.writableDatabase
+
+        // Create a ContentValues object where column names are the keys,
+        // and Toto's pet attribute are the values.
+        val values = ContentValues().apply {
+            put(PetEntry.COLUMN_PET_NAME, "Toto")
+            put(PetEntry.COLUMN_PET_BREED, "Terrier")
+            put(PetEntry.COLUMN_PET_GENDER, PetEntry.GENDER_MALE)
+            put(PetEntry.COLUMN_PET_WEIGHT, 7)
+        }
+
+        // Insert a new row for Toto in the database, returning the ID of that new row.
+        // The first argument for db.insert() is the pets table name.
+        // The second argument provides the name of a column in which the framework
+        // can insert NULL in the event that the ContentValues is empty (if
+        // this is set to "null", then the framework will not insert a row when
+        // there are no values).
+        // The third argument is the ContentValues object containing the info for Toto.
+        val newRowId = db?.insert(PetEntry.TABLE_NAME, null, values)
+
+        Log.d(this::class.java.simpleName, "New Row ID: $newRowId")
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -83,8 +113,11 @@ class CatalogActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // User clicked on a menu option in the app bar overflow menu
         when (item.itemId) {
-            R.id.action_insert_dummy_data ->                 // Do nothing for now
+            R.id.action_insert_dummy_data -> {
+                insertPet()
+                displayDatabaseInfo()
                 return true
+            }
             R.id.action_delete_all_entries ->                 // Do nothing for now
                 return true
         }
