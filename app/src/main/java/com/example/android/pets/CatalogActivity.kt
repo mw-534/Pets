@@ -69,9 +69,23 @@ class CatalogActivity : AppCompatActivity() {
         // Create and/or open a database to read from it
         val db = mDbHelper?.readableDatabase
 
-        // Perform this raw SQL query "SELECT * FROM pets"
-        // to get a Cursor that contains all rows from the pets table.
-        val cursor: Cursor? = db?.rawQuery("SELECT * FROM " + PetEntry.TABLE_NAME, null)
+        // This projection could be replaced by null since it includes all columns.
+        val projection = arrayOf(
+            PetEntry._ID,
+            PetEntry.COLUMN_PET_NAME,
+            PetEntry.COLUMN_PET_BREED,
+            PetEntry.COLUMN_PET_GENDER,
+            PetEntry.COLUMN_PET_WEIGHT
+        )
+
+        val cursor = db?.query(
+            PetEntry.TABLE_NAME,
+            projection,
+            null,
+            null,
+            null,
+            null,
+            null)
         cursor.use { cursor ->
             // Display the number of rows in the Cursor (which reflects the number of rows in the
             // pets table in the database).
