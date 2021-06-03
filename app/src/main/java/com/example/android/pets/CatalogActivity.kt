@@ -77,15 +77,8 @@ class CatalogActivity : AppCompatActivity() {
             PetEntry.COLUMN_PET_WEIGHT
         )
 
-        val cursor = db?.query(
-            PetEntry.TABLE_NAME,
-            projection,
-            null,
-            null,
-            null,
-            null,
-            null
-        )
+        val cursor = contentResolver.query(PetEntry.CONTENT_URI,
+            projection, null, null, null)
 
         // Always close the cursor when you're done reading from it. This releases all its
         // resources and makes it invalid.
@@ -136,9 +129,6 @@ class CatalogActivity : AppCompatActivity() {
      * Helper method to insert hardcoded pet data into the database. For debugging purposes only.
      */
     private fun insertPet() {
-        // Get the database in write mode.
-        val db = mDbHelper?.writableDatabase
-
         // Create a ContentValues object where column names are the keys,
         // and Toto's pet attribute are the values.
         val values = ContentValues().apply {
@@ -148,14 +138,11 @@ class CatalogActivity : AppCompatActivity() {
             put(PetEntry.COLUMN_PET_WEIGHT, 7)
         }
 
-        // Insert a new row for Toto in the database, returning the ID of that new row.
-        // The first argument for db.insert() is the pets table name.
-        // The second argument provides the name of a column in which the framework
-        // can insert NULL in the event that the ContentValues is empty (if
-        // this is set to "null", then the framework will not insert a row when
-        // there are no values).
-        // The third argument is the ContentValues object containing the info for Toto.
-        val newRowId = db?.insert(PetEntry.TABLE_NAME, null, values)
+        // Insert a new row for Toto into the provider using the ContentResolver.
+        // Use the PetEntry.CONTENT_URI to indicate that we want to insert
+        // into the pets database table.
+        // Receive the new content URI that will allow us to access Toto's data in the future.
+        val newRowId = contentResolver.insert(PetEntry.CONTENT_URI, values)
 
         Log.d(this::class.java.simpleName, "New Row ID: $newRowId")
     }

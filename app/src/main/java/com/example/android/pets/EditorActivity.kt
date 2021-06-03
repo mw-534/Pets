@@ -111,12 +111,6 @@ class EditorActivity : AppCompatActivity() {
         val weightString = mWeightEditText?.text.toString().trim()
         val weight = Integer.parseInt(weightString)
 
-        // Create database helper.
-        val mDbHelper = PetDbHelper(this)
-
-        // Get the database in write mode.
-        val db = mDbHelper.writableDatabase
-
         // Create a ContentValues object where column names are the keys
         // and pet attributes from the editor are the values.
         val values = ContentValues().apply {
@@ -127,15 +121,15 @@ class EditorActivity : AppCompatActivity() {
         }
 
         // Insert a new row for pet in the database, returning the ID of that new row.
-        val newRowId = db.insert(PetEntry.TABLE_NAME, null, values)
+        val newUri = contentResolver.insert(PetEntry.CONTENT_URI, values)
 
         // Show a toast message depending on whether or not the insertion was successful.
-        if (newRowId.toInt() == -1) {
-            // If the row ID is -1,then there was an error with insertion.
-            Toast.makeText(this, "Error with saving pet", Toast.LENGTH_SHORT).show()
+        if (newUri == null) {
+            // If the row ID is null,then there was an error with insertion.
+            Toast.makeText(this, R.string.editor_insert_pet_failed, Toast.LENGTH_SHORT).show()
         } else {
             // Otherwise, the insertion was successful and we can display a toast with the row ID.
-            Toast.makeText(this, "Pet saved with id: $newRowId", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show()
         }
     }
 

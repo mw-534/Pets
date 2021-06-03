@@ -1,10 +1,12 @@
 package com.example.android.pets.data
 
+import android.R.id
 import android.content.ContentProvider
 import android.content.ContentUris
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
+import android.util.Log
 import com.example.android.pets.data.PetContract.PetEntry
 
 
@@ -79,7 +81,32 @@ class PetProvider : ContentProvider() {
      * Insert new data into the provider with the given ContentValues.
      */
     override fun insert(uri: Uri, contentValues: ContentValues?): Uri? {
-        return null
+        val match = sUriMatcher.match(uri)
+        return when (match) {
+            PETS -> insertPet(uri, contentValues!!)
+            else -> throw java.lang.IllegalArgumentException("Insertion is not supported for $uri")
+        }
+    }
+
+    /**
+     * Insert a pet into the database with the given content values. Return the new content URI
+     * for that specific row in the database.
+     */
+    private fun insertPet(uri: Uri, values: ContentValues): Uri? {
+        // Get writeable database.
+        val database = mDbHelper?.writableDatabase
+
+        // Insert the new pet with the given values.
+        val id = database?.insert(PetEntry.TABLE_NAME, null, values) ?: -1
+        // If the ID is -1, then the insertion failed. Log an error and return null.
+        if (id == -1L) {
+            Log.e(LOG_TAG, "Failed to insert row for ${uri.toString()}")
+            return null
+        }
+
+        // Once we know the ID of the new row in the table,
+        // return the new URI with the ID appended to the end of it.
+        return ContentUris.withAppendedId(uri, id)
     }
 
     /**
