@@ -93,6 +93,26 @@ class PetProvider : ContentProvider() {
      * for that specific row in the database.
      */
     private fun insertPet(uri: Uri, values: ContentValues): Uri? {
+        // Check that the name is not null.
+        val name = values.getAsString(PetEntry.COLUMN_PET_NAME)
+        if (name == null) {
+            throw java.lang.IllegalArgumentException("Pet requires a name")
+        }
+
+        // Check that gender is valid.
+        val gender = values.getAsInteger(PetEntry.COLUMN_PET_GENDER)
+        if (gender == null || !PetEntry.isValidGender(gender)) {
+            throw java.lang.IllegalArgumentException("Pet requires valid gender")
+        }
+
+        // If the weight is provided, check that it's greater than or equal to 0 kg.
+        val weight = values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT)
+        if (weight != null && weight < 0) {
+            throw java.lang.IllegalArgumentException("Pet requires valid weight")
+        }
+
+        // No need to check the breed, any value is valid (including null).
+
         // Get writeable database.
         val database = mDbHelper?.writableDatabase
 

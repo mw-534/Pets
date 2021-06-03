@@ -96,5 +96,13 @@ object PetContract {
         const val GENDER_UNKNOWN = 0
         const val GENDER_MALE = 1
         const val GENDER_FEMALE = 2
+
+        /**
+         * Returns whether or not the given gender is [GENDER_UNKNOWN], [GENDER_MALE]
+         * or [GENDER_FEMALE].
+         */
+        fun isValidGender(gender: Int): Boolean {
+            return gender == GENDER_UNKNOWN || gender == GENDER_MALE || gender == GENDER_FEMALE
+        }
     }
 }
