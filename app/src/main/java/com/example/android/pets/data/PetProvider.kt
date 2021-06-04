@@ -1,6 +1,5 @@
 package com.example.android.pets.data
 
-import android.R.id
 import android.content.ContentProvider
 import android.content.ContentUris
 import android.content.ContentValues
@@ -138,7 +137,71 @@ class PetProvider : ContentProvider() {
         selection: String?,
         selectionArgs: Array<String>?
     ): Int {
-        return 0
+        val match = sUriMatcher.match(uri)
+        when (match) {
+            PETS -> return updatePet(uri, contentValues, selection, selectionArgs)
+            PET_ID -> {
+                // For the PET_ID code, extract out the ID from the URI,
+                // so we know which row to update. Selection will be "_id=?" and
+                // selection arguments will be a String array containing the actual ID.
+                val selection = "${PetEntry._ID}=?"
+                val selectionArgs = arrayOf(ContentUris.parseId(uri).toString())
+                return updatePet(uri, contentValues, selection, selectionArgs)
+            }
+            else -> throw java.lang.IllegalArgumentException("Update is not supported for $uri.")
+        }
+    }
+
+    /**
+     * Update pets in the database with the given content values. Apply the changes to the rows
+     * specified in the selection and selection arguments (which could be 0 or 1 or more pets).
+     * Return the number or rows that were successfully updated.
+     */
+    private fun updatePet(
+        uri: Uri, values: ContentValues?, selection: String?,
+        selectionArgs: Array<String>?
+    ): Int {
+        // If the PetEntry.COLUMN_PET_NAME key is present,
+        // check that the name value is not null.
+        if (values?.containsKey(PetEntry.COLUMN_PET_NAME) == true) {
+            val name = values.getAsShort(PetEntry.COLUMN_PET_NAME)
+            if (name == null) {
+                throw java.lang.IllegalArgumentException("Pet requires a name")
+            }
+        }
+
+        // If the PetEntry.COLUMN_PET_GENDER key is present,
+        // check that the gender value is valid.
+        if (values?.containsKey(PetEntry.COLUMN_PET_GENDER) == true) {
+            val gender = values.getAsInteger(PetEntry.COLUMN_PET_GENDER)
+            if (gender == null || !PetEntry.isValidGender(gender)) {
+                throw java.lang.IllegalArgumentException("Pet requires valid gender")
+            }
+        }
+
+        // If the PetEntry.COLUMN_PET_WEIGHT key is present,
+        // check that the weight value is valid.
+        if (values?.containsKey(PetEntry.COLUMN_PET_WEIGHT) == true) {
+            // Check that the weight is greater than or equal to 0 kg
+            val weight = values.getAsInteger(PetEntry.COLUMN_PET_WEIGHT)
+            if (weight != null && weight < 0) {
+                throw java.lang.IllegalArgumentException("Pet requires valid weight")
+            }
+        }
+
+        // No need to check the breed, any value is valid (including null).
+
+        // If there are no values to update, then don't try to update the database.
+        if (values?.size() == 0) {
+            return 0
+        }
+
+        // Otherwise, get writeable database to update the data.
+        val database = mDbHelper?.writableDatabase
+
+        // Update the selected pets in the pets database table with the given ContentValues and
+        // return the number of rows that were affected.
+        return database?.update(PetEntry.TABLE_NAME, values, selection, selectionArgs) ?: 0
     }
 
     /**
