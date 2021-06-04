@@ -229,8 +229,13 @@ class PetProvider : ContentProvider() {
     /**
      * Returns the MIME type of data for the content URI.
      */
-    override fun getType(uri: Uri): String? {
-        return null
+    override fun getType(uri: Uri): String {
+        val match = sUriMatcher.match(uri)
+        return when (match) {
+            PETS -> PetEntry.MIME_LIST_TYPE
+            PET_ID -> PetEntry.MIME_ITEM_TYPE
+            else -> throw java.lang.IllegalStateException("Unknown URI $uri with match $match")
+        }
     }
 
     companion object {
