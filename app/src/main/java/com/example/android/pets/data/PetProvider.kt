@@ -208,7 +208,22 @@ class PetProvider : ContentProvider() {
      * Delete the data at the given selection and selection arguments.
      */
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
-        return 0
+        // Get writeable database
+        val database = mDbHelper!!.writableDatabase
+
+        val match = sUriMatcher.match(uri)
+        return when (match) {
+            PETS ->
+                // Delete all rows that match the selection and selection args
+                database.delete(PetEntry.TABLE_NAME, selection, selectionArgs)
+            PET_ID -> {
+                // Delete a single row given by the ID in the URI
+                val selection = PetEntry._ID + "=?"
+                val selectionArgs = arrayOf(ContentUris.parseId(uri).toString())
+                database.delete(PetEntry.TABLE_NAME, selection, selectionArgs)
+            }
+            else -> throw java.lang.IllegalArgumentException("Deletion is not supported for $uri")
+        }
     }
 
     /**
