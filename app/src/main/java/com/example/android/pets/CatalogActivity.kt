@@ -22,7 +22,8 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.TextView
+import android.widget.ListView
+import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.example.android.pets.data.PetContract.PetEntry
 import com.example.android.pets.data.PetDbHelper
@@ -40,6 +41,13 @@ class CatalogActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_catalog)
+
+        // Find the ListView which will be populated with the pet data.
+        val petListView = findViewById<ListView>(R.id.list)
+
+        // Find and set empty view on the ListView, so that it only shows when the list has 0 items.
+        val emptyView = findViewById<RelativeLayout>(R.id.empty_view)
+        petListView.emptyView = emptyView
 
         // Setup FAB to open EditorActivity
         val fab = findViewById<View>(R.id.fab) as FloatingActionButton
@@ -80,49 +88,14 @@ class CatalogActivity : AppCompatActivity() {
         val cursor = contentResolver.query(PetEntry.CONTENT_URI,
             projection, null, null, null)
 
-        // Always close the cursor when you're done reading from it. This releases all its
-        // resources and makes it invalid.
-        cursor?.use { cursor ->
-            // Display the number of rows in the Cursor (which reflects the number of rows in the
-            // pets table in the database).
-            val displayView = findViewById<TextView>(R.id.text_view_pet)
+        // Find the ListView which will be populated with the pet data.
+        val petListView = findViewById<ListView>(R.id.list)
 
-            // Create a header in the Text View that looks like this:
-            //
-            // The pets table contains <number of rows in Cursor> pets.
-            // _id - name - breed - gender - weight
-            //
-            // In the while loop below, iterate through the rows of the cursor and display
-            // the information from each column in this order.
-            displayView.text =
-                "The pets table contains " + cursor.count.toString() + " pets.\n\n"
-            displayView.append(
-                "${PetEntry._ID} - ${PetEntry.COLUMN_PET_NAME} - ${PetEntry.COLUMN_PET_BREED}" +
-                        " - ${PetEntry.COLUMN_PET_GENDER} - ${PetEntry.COLUMN_PET_WEIGHT}\n"
-            )
+        // Setup an Adapter to create a list item for each row of pet data in the Cursor.
+        val adapter = PetCursorAdapter(this, cursor)
 
-            // Figure out the index of each column
-            val idColumnIndex = cursor.getColumnIndex(PetEntry._ID)
-            val nameColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_NAME)
-            val breedColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_BREED)
-            val genderColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_GENDER)
-            val weightColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_WEIGHT)
-
-            // Iterate through all the returned rows in the cursor
-            while (cursor.moveToNext()) {
-                // Use that index to extract the String or Int value of the word
-                // at the current row the cursor is on.
-                val currentID = cursor.getInt(idColumnIndex)
-                val currentName = cursor.getString(nameColumnIndex)
-                val currentBreed = cursor.getString(breedColumnIndex)
-                val currentGender = cursor.getInt(genderColumnIndex)
-                val currentWeight = cursor.getInt(weightColumnIndex)
-                // Display the values from each column of the current row in the cursor in the TextView
-                displayView.append(
-                    "\n$currentID - $currentName - $currentBreed - $currentGender - $currentWeight"
-                )
-            }
-        }
+        // Attach the adapter to the ListView.
+        petListView.adapter = adapter
     }
 
     /**
