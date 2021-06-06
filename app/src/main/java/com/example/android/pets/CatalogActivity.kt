@@ -15,8 +15,10 @@
  */
 package com.example.android.pets
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Intent
+import android.database.Cursor
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -42,23 +44,18 @@ class CatalogActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_catalog)
 
-        // Find the ListView which will be populated with the pet data.
-        val petListView = findViewById<ListView>(R.id.list)
-
-        // Find and set empty view on the ListView, so that it only shows when the list has 0 items.
-        val emptyView = findViewById<RelativeLayout>(R.id.empty_view)
-        petListView.emptyView = emptyView
-
         // Setup FAB to open EditorActivity
         val fab = findViewById<View>(R.id.fab) as FloatingActionButton
         fab.setOnClickListener {
             val intent = Intent(this@CatalogActivity, EditorActivity::class.java)
             startActivity(intent)
         }
+        // Find the ListView which will be populated with the pet data.
+        val petListView = findViewById<ListView>(R.id.list)
 
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper
-        // and pass the context, which is the current activity.
-        mDbHelper = PetDbHelper(this)
+        // Find and set empty view on the ListView, so that it only shows when the list has 0 items.
+        val emptyView = findViewById<RelativeLayout>(R.id.empty_view)
+        petListView.emptyView = emptyView
 
         displayDatabaseInfo()
     }
@@ -73,9 +70,6 @@ class CatalogActivity : AppCompatActivity() {
      * the pets database.
      */
     private fun displayDatabaseInfo() {
-        // Create and/or open a database to read from it
-        val db = mDbHelper?.readableDatabase
-
         // This projection could be replaced by null since it includes all columns.
         val projection = arrayOf(
             PetEntry._ID,
@@ -96,6 +90,25 @@ class CatalogActivity : AppCompatActivity() {
 
         // Attach the adapter to the ListView.
         petListView.adapter = adapter
+
+        // Setup the item click listener.
+        petListView.setOnItemClickListener { parent, view, position, id ->
+            // Create new intent to go to EditorActivity
+            val i = Intent(this@CatalogActivity, EditorActivity::class.java)
+
+            // Form the content URI that represents the specific pet that was clicked on,
+            // by appending the "id" (passed as input to this method) onto the
+            // PetEntry.CONTENT_URI.
+            // For example the URI would be "content://com.example.android.pets/pets/2"
+            // if the pet with ID 2 was clicked on.
+            val currentPetUri = ContentUris.withAppendedId(PetEntry.CONTENT_URI, id)
+
+            // Set the URI on the data field of the intent.
+            i.data = currentPetUri
+
+            // Launch the EditorActivity to display the data for the current pet.
+            startActivity(i)
+        }
     }
 
     /**

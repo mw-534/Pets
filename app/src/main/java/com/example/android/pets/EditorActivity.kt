@@ -52,12 +52,28 @@ class EditorActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editor)
 
+        // Examine the intent that was used to launch this activity,
+        // in order to figure out if we're creating a new pet or editing an exsiting one.
+        val currentPetUri = intent.data
+
+        // If the intent DOES NOT contain a pet content URI, then we know that we are
+        // creating a new pet.
+        title = if (currentPetUri == null) {
+            // This is a new pet, so change the app bar to say "Add a Pet".
+            getString(R.string.editor_activity_title_new_pet)
+        } else {
+            // Otherwise this is an existing pet, so change app bar to say "Edit Pet".
+            getString(R.string.editor_activity_title_edit_pet)
+        }
+
         // Find all relevant views that we will need to read user input from
         mNameEditText = findViewById<View>(R.id.edit_pet_name) as EditText
         mBreedEditText = findViewById<View>(R.id.edit_pet_breed) as EditText
         mWeightEditText = findViewById<View>(R.id.edit_pet_weight) as EditText
         mGenderSpinner = findViewById<View>(R.id.spinner_gender) as Spinner
         setupSpinner()
+
+
     }
 
     /**
