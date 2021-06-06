@@ -164,7 +164,7 @@ class PetProvider : ContentProvider() {
         // If the PetEntry.COLUMN_PET_NAME key is present,
         // check that the name value is not null.
         if (values?.containsKey(PetEntry.COLUMN_PET_NAME) == true) {
-            val name = values.getAsShort(PetEntry.COLUMN_PET_NAME)
+            val name = values.getAsString(PetEntry.COLUMN_PET_NAME)
             if (name == null) {
                 throw java.lang.IllegalArgumentException("Pet requires a name")
             }

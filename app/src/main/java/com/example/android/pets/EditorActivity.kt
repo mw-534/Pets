@@ -27,13 +27,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NavUtils
 import androidx.core.database.getStringOrNull
 import com.example.android.pets.data.PetContract.PetEntry
-import com.example.android.pets.data.PetDbHelper
-import com.example.android.pets.data.PetProvider
 
 /**
  * Allows user to create a new pet or edit an existing one.
  */
 class EditorActivity : AppCompatActivity() {
+
+    /** Content URI for the existing pet (null if it's a new pet) */
+    private var mCurrentPetUri: Uri? = null
+
     /** EditText field to enter the pet's name  */
     private var mNameEditText: EditText? = null
 
@@ -56,12 +58,12 @@ class EditorActivity : AppCompatActivity() {
         setContentView(R.layout.activity_editor)
 
         // Examine the intent that was used to launch this activity,
-        // in order to figure out if we're creating a new pet or editing an exsiting one.
-        val currentPetUri = intent.data
+        // in order to figure out if we're creating a new pet or editing an existing one.
+        mCurrentPetUri = intent.data
 
         // If the intent DOES NOT contain a pet content URI, then we know that we are
         // creating a new pet.
-        title = if (currentPetUri == null) {
+        title = if (mCurrentPetUri == null) {
             // This is a new pet, so change the app bar to say "Add a Pet".
             getString(R.string.editor_activity_title_new_pet)
         } else {
@@ -77,8 +79,8 @@ class EditorActivity : AppCompatActivity() {
         setupSpinner()
 
         // Load pet from content URI if in edit mode.
-        if (currentPetUri != null) {
-            loadPet(currentPetUri)
+        if (mCurrentPetUri != null) {
+            loadPet(mCurrentPetUri!!)
         }
     }
 
@@ -124,9 +126,9 @@ class EditorActivity : AppCompatActivity() {
     }
 
     /**
-     * Get user input from editor and save new pet into database.
+     * Get user input from editor and save pet into database.
      */
-    private fun insertPet() {
+    private fun savePet() {
         // Read input fields.
         // Use trim to remove leading or trailing white space.
         val nameString = mNameEditText?.text.toString().trim()
@@ -143,16 +145,38 @@ class EditorActivity : AppCompatActivity() {
             put(PetEntry.COLUMN_PET_GENDER, mGender)
         }
 
-        // Insert a new row for pet in the database, returning the ID of that new row.
-        val newUri = contentResolver.insert(PetEntry.CONTENT_URI, values)
 
-        // Show a toast message depending on whether or not the insertion was successful.
-        if (newUri == null) {
-            // If the row ID is null,then there was an error with insertion.
-            Toast.makeText(this, R.string.editor_insert_pet_failed, Toast.LENGTH_SHORT).show()
+        // Determine if this is a new or existing pet by checking if mCurrentPetUri is null or not
+        if (mCurrentPetUri == null) {
+            // This is a NEW pet, so insert a new pet into the provider,
+            // returning the content URI for the new pet.
+            val newUri = contentResolver.insert(PetEntry.CONTENT_URI, values)
+
+            // Show a toast message depending on whether or not the insertion was successful.
+            if (newUri == null) {
+                // If the row ID is null,then there was an error with insertion.
+                Toast.makeText(this, R.string.editor_insert_pet_failed, Toast.LENGTH_SHORT).show()
+            } else {
+                // Otherwise, the insertion was successful and we can display a toast with the row ID.
+                Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show()
+            }
         } else {
-            // Otherwise, the insertion was successful and we can display a toast with the row ID.
-            Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show()
+            // Otherwise this is an EXISTING pet, so update the pet with content URI: mCurrentPetUri
+            // and pass in the new ContentValues. Pass in null for the selection and selection args
+            // because mCurrentPetUri will already identify the correct row in the database that
+            // we want to modify.
+            val rowsAffected = contentResolver.update(mCurrentPetUri!!, values, null, null)
+
+            // Show a toast message depending on whether or not the update was successful.
+            if (rowsAffected == 0) {
+                // If no rows were affected, then there was an error with the update.
+                Toast.makeText(this, getString(R.string.editor_update_pet_failed),
+                    Toast.LENGTH_SHORT).show()
+            } else {
+                // Otherwise, the update was successful and we can display a toast.
+                Toast.makeText(this, getString(R.string.editor_update_pet_successful),
+                    Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -168,7 +192,7 @@ class EditorActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.action_save -> {
                 // Save pet to database.
-                insertPet()
+                savePet()
                 // Exit activity.
                 finish()
                 return true
