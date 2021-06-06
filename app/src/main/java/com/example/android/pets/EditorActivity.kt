@@ -16,6 +16,7 @@
 package com.example.android.pets
 
 import android.content.ContentValues
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -24,8 +25,10 @@ import android.widget.*
 import android.widget.AdapterView.OnItemSelectedListener
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NavUtils
+import androidx.core.database.getStringOrNull
 import com.example.android.pets.data.PetContract.PetEntry
 import com.example.android.pets.data.PetDbHelper
+import com.example.android.pets.data.PetProvider
 
 /**
  * Allows user to create a new pet or edit an existing one.
@@ -73,7 +76,10 @@ class EditorActivity : AppCompatActivity() {
         mGenderSpinner = findViewById<View>(R.id.spinner_gender) as Spinner
         setupSpinner()
 
-
+        // Load pet from content URI if in edit mode.
+        if (currentPetUri != null) {
+            loadPet(currentPetUri)
+        }
     }
 
     /**
@@ -83,7 +89,8 @@ class EditorActivity : AppCompatActivity() {
         // Create adapter for spinner. The list options are from the String array it will use
         // the spinner will use the default layout
         val genderSpinnerAdapter: ArrayAdapter<*> = ArrayAdapter.createFromResource(
-            this, R.array.array_gender_options, android.R.layout.simple_spinner_item)
+            this, R.array.array_gender_options, android.R.layout.simple_spinner_item
+        )
 
         // Specify dropdown layout style - simple list view with 1 item per line
         genderSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line)
@@ -175,5 +182,51 @@ class EditorActivity : AppCompatActivity() {
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    /**
+     * Load pet from the given content URI and populates the
+     * fields of the [EditorActivity] with the pet attributes.
+     */
+    fun loadPet(currentPetUri: Uri) {
+        // Get cursor from content resolver.
+        // Since the editor shows all attributes no projection is needed.
+        val cursor = contentResolver.query(
+            currentPetUri, null, null, null, null
+        )
+        cursor?.use {
+            // Move to the first row of the cursor and read data from it
+            // (This should be the only row in the cursor).
+            if (it.moveToFirst()) {
+                // Fill name view from cursor.
+                val nameColumnIndex = it.getColumnIndex(PetEntry.COLUMN_PET_NAME)
+                val name = it.getString(nameColumnIndex)
+                mNameEditText?.setText(name)
+
+                // Fill breed view from cursor.
+                val breedColumnIndex = it.getColumnIndex(PetEntry.COLUMN_PET_BREED)
+                val breed = it.getStringOrNull(breedColumnIndex)
+                mBreedEditText?.setText(breed)
+
+                // Fill gender spinner from cursor.
+                val genderColumnIndex = it.getColumnIndex(PetEntry.COLUMN_PET_GENDER)
+                mGender = it.getInt(genderColumnIndex)
+                // Gender is a dropdown spinner, so map the constant value from the database
+                // into one of the dropdown options (0 is Unknown, 1 is Male, 2 is Female).
+                // Then call setSelection() so that option is displayed on screen as the current selection.
+                val selection = when (mGender) {
+                    PetEntry.GENDER_MALE -> 1
+                    PetEntry.GENDER_FEMALE -> 2
+                    else -> 0
+                }
+                mGenderSpinner?.setSelection(selection)
+
+                // Fill weight view from cursor.
+                val weightColumnIndex = it.getColumnIndex(PetEntry.COLUMN_PET_WEIGHT)
+                val weight = it.getInt(weightColumnIndex)
+                mWeightEditText?.setText(weight.toString())
+            }
+        }
+
     }
 }
