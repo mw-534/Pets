@@ -16,6 +16,7 @@
 package com.example.android.pets
 
 import android.content.ContentValues
+import android.content.DialogInterface
 import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
@@ -23,6 +24,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.*
 import android.widget.AdapterView.OnItemSelectedListener
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NavUtils
 import androidx.core.database.getStringOrNull
@@ -53,6 +55,19 @@ class EditorActivity : AppCompatActivity() {
      * 0 for unknown gender, 1 for male, 2 for female.
      */
     private var mGender = PetEntry.GENDER_UNKNOWN
+
+    /** Boolean flag that keeps track of whether the pet has been edited (true) or not (false) */
+    var mPetHasChanged: Boolean = false
+
+    /**
+     * OnTouchListener that listens for any user touches on a View, implying that they are modifying
+     * the view, and we change the mPetHasChanged boolean to true.
+     */
+    val mTouchListener = View.OnTouchListener { v, event ->
+        mPetHasChanged = true
+        false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_editor)
@@ -77,6 +92,14 @@ class EditorActivity : AppCompatActivity() {
         mWeightEditText = findViewById<View>(R.id.edit_pet_weight) as EditText
         mGenderSpinner = findViewById<View>(R.id.spinner_gender) as Spinner
         setupSpinner()
+
+        // Setup OnTouchListeners on all the input fields, so we can determine if the user
+        // has touched or modified them. This will let us know if there are unsaved changes
+        // or not, if the user tries to leave the editor without saving.
+        mNameEditText?.setOnTouchListener(mTouchListener)
+        mBreedEditText?.setOnTouchListener(mTouchListener)
+        mWeightEditText?.setOnTouchListener(mTouchListener)
+        mGenderSpinner?.setOnTouchListener(mTouchListener)
 
         // Load pet from content URI if in edit mode.
         if (mCurrentPetUri != null) {
@@ -134,7 +157,20 @@ class EditorActivity : AppCompatActivity() {
         val nameString = mNameEditText?.text.toString().trim()
         val breedString = mBreedEditText?.text.toString().trim()
         val weightString = mWeightEditText?.text.toString().trim()
-        val weight = Integer.parseInt(weightString)
+        // If the weight is not provided by the user, don't try to parse the string into an
+        // integer value. Use 0 by default.
+        var weight = 0
+        if (!weightString.isNullOrEmpty()) {
+            weight = Integer.parseInt(weightString)
+        }
+
+        // Check that user didn't accidentally saved the pet with empty fields.
+        if (mCurrentPetUri == null
+            && nameString.isNullOrEmpty() && mGender == PetEntry.GENDER_UNKNOWN
+            && breedString.isNullOrEmpty() && weightString.isNullOrEmpty()) {
+                // user accidentally pressed save with empty dataset, hence exit activity.
+                return
+        }
 
         // Create a ContentValues object where column names are the keys
         // and pet attributes from the editor are the values.
@@ -200,12 +236,53 @@ class EditorActivity : AppCompatActivity() {
             R.id.action_delete ->                 // Do nothing for now
                 return true
             android.R.id.home -> {
-                // Navigate back to parent activity (CatalogActivity)
-                NavUtils.navigateUpFromSameTask(this)
+                // If the pet hasn't changed, continue with navigating up to parent activity
+                // which is the CatalogActivity.
+                if (!mPetHasChanged) {
+                    NavUtils.navigateUpFromSameTask(this@EditorActivity)
+                    return true
+                }
+
+                // Otherwise if there are unsaved changes, setup a dialog to warn the user.
+                // Create a click listener to handle the user confirming that
+                // changes should be discarded.
+                val discardButtonClickListener = DialogInterface.OnClickListener { dialog, which ->
+                    // User clicked "Discard" button, navigate up to parent activity.
+                    NavUtils.navigateUpFromSameTask(this@EditorActivity)
+                }
+
+                // Show a dialog that notifies the user they have unsaved changes.
+                showUnsavedChangesDialog(discardButtonClickListener)
                 return true
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    /**
+     * Called when the activity has detected the user's press of the back
+     * key. The [OnBackPressedDispatcher][.getOnBackPressedDispatcher] will be given a
+     * chance to handle the back button before the default behavior of
+     * [android.app.Activity.onBackPressed] is invoked.
+     *
+     * @see .getOnBackPressedDispatcher
+     */
+    override fun onBackPressed() {
+        // If the pet hasn't changed, continue with handling back button press.
+        if (!mPetHasChanged) {
+            super.onBackPressed()
+            return
+        }
+
+        // Otherwise if there are unsaved changes, setup a dialog to warn the user.
+        // Create a click listener to handle the user confirming that changes should be discarded.
+        val discardButtonClickListener = DialogInterface.OnClickListener { dialog, which ->
+            // User clicked the "Discard" button, close the current activity.
+            finish()
+        }
+
+        // Show dialog that there are unsaved changes.
+        showUnsavedChangesDialog(discardButtonClickListener)
     }
 
     /**
@@ -251,6 +328,32 @@ class EditorActivity : AppCompatActivity() {
                 mWeightEditText?.setText(weight.toString())
             }
         }
+    }
 
+    /**
+     *  Show a dialog that warns the user there are unsaved changes that will be lost
+     *  if they continue leaving the editor.
+     *
+     *  @param discardButtonClickListener   is the click listener for what to do when
+     *                                      the user confirms they want to discard their changes.
+     */
+    private fun showUnsavedChangesDialog(
+        discardButtonClickListener: DialogInterface.OnClickListener) {
+        // Create an AlertDialog.Builder and set the message, and click listeners
+        // for the positive and negative buttons on the dialog.
+        val builder = AlertDialog.Builder(this).apply {
+            setMessage(getString(R.string.unsaved_changes_dialog_msg))
+            setPositiveButton(getString(R.string.discard), discardButtonClickListener)
+            setNegativeButton(getString(R.string.keep_editing), DialogInterface.OnClickListener {
+                    dialog, which ->
+                // User clicked the "keep editing" button, so dismiss the dialog
+                // and continue editing the pet.
+                dialog?.dismiss()
+            })
+        }
+
+        // Create and show the AlertDialog.
+        val alertDialog = builder.create()
+        alertDialog.show()
     }
 }
