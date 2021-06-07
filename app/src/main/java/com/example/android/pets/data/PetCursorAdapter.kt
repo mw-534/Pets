@@ -57,7 +57,13 @@ class PetCursorAdapter(context: Context?, c: Cursor?) :
 
         // Read the pet attributes from the Cursor for the current pet.
         val petName = cursor.getString(nameColumnIndex)
-        val petBreed = cursor.getStringOrNull(breedColumnIndex)
+        var petBreed = cursor.getStringOrNull(breedColumnIndex)
+
+        // If the pet breed is empty string or null, then use some default text
+        // that says "Unknown breed", so the TextView isn't blank.
+        if (petBreed.isNullOrEmpty()) {
+            petBreed = context.getString(R.string.unknown_breed)
+        }
 
         // Update the TextViews with the attributes for the current pet.
         nameTextView.text = petName
