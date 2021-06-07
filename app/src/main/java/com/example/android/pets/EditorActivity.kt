@@ -78,12 +78,16 @@ class EditorActivity : AppCompatActivity() {
 
         // If the intent DOES NOT contain a pet content URI, then we know that we are
         // creating a new pet.
-        title = if (mCurrentPetUri == null) {
+        if (mCurrentPetUri == null) {
             // This is a new pet, so change the app bar to say "Add a Pet".
-            getString(R.string.editor_activity_title_new_pet)
+            title = getString(R.string.editor_activity_title_new_pet)
+
+            // Invalidate the options menu, so the "Delete" menu option can be hidden.
+            // (It doesn't make sense to delete a pet that hasn't been created yet.)
+            invalidateOptionsMenu()
         } else {
             // Otherwise this is an existing pet, so change app bar to say "Edit Pet".
-            getString(R.string.editor_activity_title_edit_pet)
+            title = getString(R.string.editor_activity_title_edit_pet)
         }
 
         // Find all relevant views that we will need to read user input from
@@ -220,6 +224,38 @@ class EditorActivity : AppCompatActivity() {
         // Inflate the menu options from the res/menu/menu_editor.xml file.
         // This adds menu items to the app bar.
         menuInflater.inflate(R.menu.menu_editor, menu)
+        return true
+    }
+
+    /**
+     * This method is called after invalidateOptionsMenu(), so that the
+     * menu can be updated (some menu items can be hidden or made visible).
+     *
+     * Prepare the Screen's standard options menu to be displayed.  This is
+     * called right before the menu is shown, every time it is shown.  You can
+     * use this method to efficiently enable/disable items or otherwise
+     * dynamically modify the contents.
+     *
+     *
+     * The default implementation updates the system menu items based on the
+     * activity's state.  Deriving classes should always call through to the
+     * base class implementation.
+     *
+     * @param menu The options menu as last shown or first initialized by
+     * onCreateOptionsMenu().
+     *
+     * @return You must return true for the menu to be displayed;
+     * if you return false it will not be shown.
+     *
+     * @see .onCreateOptionsMenu
+     */
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        super.onPrepareOptionsMenu(menu)
+        // If this is a new pet, hide the "Delete" menu item.
+        if (mCurrentPetUri == null) {
+            val menuItem = menu?.findItem(R.id.action_delete)
+            menuItem?.setVisible(false)
+        }
         return true
     }
 
