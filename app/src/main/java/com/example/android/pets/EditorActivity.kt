@@ -381,9 +381,9 @@ class EditorActivity : AppCompatActivity() {
         // Create an AlertDialog.Builder and set the message, and click listeners
         // for the positive and negative buttons on the dialog.
         val builder = AlertDialog.Builder(this).apply {
-            setMessage(getString(R.string.unsaved_changes_dialog_msg))
-            setPositiveButton(getString(R.string.discard), discardButtonClickListener)
-            setNegativeButton(getString(R.string.keep_editing), DialogInterface.OnClickListener {
+            setMessage(R.string.unsaved_changes_dialog_msg)
+            setPositiveButton(R.string.discard, discardButtonClickListener)
+            setNegativeButton(R.string.keep_editing, DialogInterface.OnClickListener {
                     dialog, which ->
                 // User clicked the "keep editing" button, so dismiss the dialog
                 // and continue editing the pet.

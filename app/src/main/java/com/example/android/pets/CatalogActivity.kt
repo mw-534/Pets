@@ -17,6 +17,7 @@ package com.example.android.pets
 
 import android.content.ContentUris
 import android.content.ContentValues
+import android.content.DialogInterface
 import android.content.Intent
 import android.database.Cursor
 import android.os.Bundle
@@ -26,6 +27,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ListView
 import android.widget.RelativeLayout
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.android.pets.data.PetContract.PetEntry
 import com.example.android.pets.data.PetDbHelper
@@ -36,10 +39,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
  * Displays list of pets that were entered and stored in the app.
  */
 class CatalogActivity : AppCompatActivity() {
-
-    /** Database helper that will provide us access to the database. */
-    private var mDbHelper: PetDbHelper? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_catalog)
@@ -133,6 +132,14 @@ class CatalogActivity : AppCompatActivity() {
         Log.d(this::class.java.simpleName, "New Row ID: $newRowId")
     }
 
+    /**
+     * Helper method to delete all pets from the database.
+     */
+    private fun deleteAllPets() {
+        val rowsDeleted = contentResolver.delete(PetEntry.CONTENT_URI, null, null)
+        Log.v(this::class.java.simpleName, "$rowsDeleted rows deleted from pet database")
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu options from the res/menu/menu_catalog.xml file.
         // This adds menu items to the app bar.
@@ -148,9 +155,31 @@ class CatalogActivity : AppCompatActivity() {
                 displayDatabaseInfo()
                 return true
             }
-            R.id.action_delete_all_entries ->                 // Do nothing for now
+            R.id.action_delete_all_entries -> {
+                showDeleteAllPetsDialog()
                 return true
+            }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun showDeleteAllPetsDialog() {
+        // Create an AlertDialog.Builder and set the message and click listeners
+        // for positive and negative buttons on the dialog.
+        val builder = AlertDialog.Builder(this).apply {
+            setMessage(R.string.delete_all_pets_dialog_msg)
+            setPositiveButton(R.string.action_delete_all_entries) { dialog, which ->
+                // User clicked "Delete" button, so delete all pets.
+                deleteAllPets()
+            }
+            setNegativeButton(R.string.discard) { dialog, which ->
+                // User clicked cancel so don't delete the pets and dismiss dialog.
+                dialog?.dismiss()
+            }
+        }
+
+        // Create and show the alert dialog.
+        val alertDialog = builder.create()
+        alertDialog.show()
     }
 }
